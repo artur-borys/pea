@@ -5,21 +5,20 @@
 #include <iostream>
 #include "utils.h"
 #include "Instance.h"
+#include <algorithm>
+#include "Algorithm.h"
 
 int main()
 {
-	int size = 10;
-	Instance instance = Instance::createFromFile("data10.txt");
-	instance.setDebugging(true);
-	instance.print();
-	int *points = utils::ascendingSolution(size);
-	cout << "Funkcja celu (permutacja naturalna): " << instance.calculateCostFunction(points) << endl;
-	delete points;
-	points = utils::randomSolution(size);
-	cout << "Funkcja celu (permutacja losowa): " << instance.calculateCostFunction(points) << endl;
-	delete points;
-	int points2[11] = { 0, 5, 3, 2, 4, 1, 6, 9, 8, 7 };
-	cout << "Funkcja celu (permutacja zadana): " << instance.calculateCostFunction(points2) << endl;
+	Instance inst = Instance::createFromFile("E:\\libs\\Dokumenty\\studia\\PEA\\Projekt\\PEA\\SMALL\\data14.txt");
+	Algorithm alg;
+
+	alg.BruteForce(inst);
+
+	cout << "Distance: " << alg.finalDistance << endl;
+	cout << "Solution: ";
+	utils::printSolution(alg.finalSolution, inst.getSize());
+	cout << endl;
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

@@ -6,7 +6,7 @@ Instance::Instance()
 {
 }
 
-Instance::Instance(string name, size_t size, int ** data) : name(name), size(size), data(data)
+Instance::Instance(string name, size_t size, int ** data, bool debugging) : name(name), size(size), data(data), debugging(debugging)
 {
 }
 
@@ -65,6 +65,11 @@ bool Instance::setDebugging(bool debugging)
 	return this->debugging = debugging;
 }
 
+size_t Instance::getSize()
+{
+	return size;
+}
+
 
 Instance::~Instance()
 {
@@ -99,6 +104,7 @@ Instance Instance::readFromFile(string path)
 			}
 
 			stringstream lineStream = stringstream(line);
+			
 			data[rowNum] = new int[instanceSize];
 
 			for (int i = 0; i < instanceSize; i++) {

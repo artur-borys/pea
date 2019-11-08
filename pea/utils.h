@@ -5,10 +5,13 @@
 #include <sstream>
 #include <random>
 #include <chrono>
+#include <algorithm>
 
 using namespace std;
 
 namespace utils{
 	int *randomSolution(int size);
 	int *ascendingSolution(int size);
+	bool nextPermutation(int* first, int* last);
+	void printSolution(int* solution, int size);
 }

@@ -15,12 +15,13 @@ class Instance
 {
 public:
 	Instance();
-	Instance(string name, size_t size, int **data);
+	Instance(string name, size_t size, int **data, bool debugging = false);
 	static Instance createFromFile(string path);
 	int calculateCostFunction(int *points);
 	int calculateCostFunction();
 	void print();
 	bool setDebugging(bool debugging);
+	size_t getSize();
 	~Instance();
 private:
 	static Instance readFromFile(string path);

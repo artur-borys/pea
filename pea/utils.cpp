@@ -55,3 +55,36 @@ int * utils::ascendingSolution(int size)
 	}
 	return solution;
 }
+
+bool utils::nextPermutation(int* first, int* last) {
+	if (first == last) return false;
+	int* i = last;
+	if (first == --i) return false;
+
+	while (true) {
+		int* i1;
+		int* i2;
+		i1 = i;
+
+		if (*--i < *i1) {
+			i2 = last;
+			while (!(*i < *(--i2)));
+			std::iter_swap(i, i2);
+			std::reverse(i1, last);
+			return true;
+		}
+		if (i == first) {
+			std::reverse(first, last);
+			return false;
+		}
+	}
+}
+
+void utils::printSolution(int* solution, int size)
+{
+	std::cout << solution[0];
+	for (int i = 1; i < size; i++) {
+		std::cout << ", " << solution[i];
+	}
+	std:cout << endl;
+}
