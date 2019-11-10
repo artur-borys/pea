@@ -6,18 +6,26 @@
 #include "utils.h"
 #include "Instance.h"
 #include <algorithm>
-#include "Algorithm.h"
+#include "Algorithms.h"
 
 int main()
 {
-	Instance inst = Instance::createFromFile("E:\\libs\\Dokumenty\\studia\\PEA\\Projekt\\PEA\\SMALL\\data14.txt");
-	Algorithm alg;
+	//Instance inst = Instance::createFromFile("E:\\libs\\Dokumenty\\studia\\PEA\\Projekt\\PEA\\SMALL\\data10.txt");
+	Instance inst = Instance::createFromFile("data4.txt");
+	BruteForce bf(inst);
+	DynamicProgramming dp(inst);
 
-	alg.BruteForce(inst);
+	inst.print();
 
-	cout << "Distance: " << alg.finalDistance << endl;
+	bf.run();
+	dp.run();
+
+	cout << "Distance: " << bf.getFinalDistance() << endl;
+	cout << "Distance: " << dp.getFinalDistance() << endl;
 	cout << "Solution: ";
-	utils::printSolution(alg.finalSolution, inst.getSize());
+	utils::printSolution(bf.getFinalSolution(), inst.getSize());
+	cout << "Solution: ";
+	utils::printSolution(dp.getFinalSolution());
 	cout << endl;
 }
 

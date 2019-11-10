@@ -65,6 +65,11 @@ bool Instance::setDebugging(bool debugging)
 	return this->debugging = debugging;
 }
 
+int** Instance::getData()
+{
+	return data;
+}
+
 size_t Instance::getSize()
 {
 	return size;
@@ -73,10 +78,7 @@ size_t Instance::getSize()
 
 Instance::~Instance()
 {
-	for (int i = 0; i < size; i++) {
-		delete data[i];
-	}
-	delete data;
+	delete[] data;
 }
 
 Instance Instance::readFromFile(string path)
@@ -113,6 +115,8 @@ Instance Instance::readFromFile(string path)
 
 			rowNum++;
 		}
+
+		file.close();
 
 		return Instance(instanceName, instanceSize, data);
 	}

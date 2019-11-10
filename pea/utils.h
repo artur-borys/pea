@@ -14,4 +14,5 @@ namespace utils{
 	int *ascendingSolution(int size);
 	bool nextPermutation(int* first, int* last);
 	void printSolution(int* solution, int size);
+	void printSolution(vector<int> solution);
 }

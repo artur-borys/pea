@@ -88,3 +88,12 @@ void utils::printSolution(int* solution, int size)
 	}
 	std:cout << endl;
 }
+
+void utils::printSolution(vector<int> solution)
+{
+	cout << solution.at(0);
+	for (int i = 1; i < solution.size(); i++) {
+		cout << ", " << solution.at(i);
+	}
+	cout << endl;
+}

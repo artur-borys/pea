@@ -21,6 +21,7 @@ public:
 	int calculateCostFunction();
 	void print();
 	bool setDebugging(bool debugging);
+	int** getData();
 	size_t getSize();
 	~Instance();
 private:
