@@ -10,23 +10,28 @@
 
 int main()
 {
-	Instance inst = Instance::createFromFile("E:\\libs\\Dokumenty\\studia\\PEA\\Projekt\\PEA\\SMALL\\data17.txt");
+	Instance inst = Instance::createFromFile("E:\\libs\\Dokumenty\\studia\\PEA\\Projekt\\PEA\\SMALL\\data10.txt");
 	//Instance inst = Instance::createFromFile("data4.txt");
+	BranchNBound bnb(inst, 0);
 	BruteForce bf(inst);
 	DynamicProgramming dp(inst, 0);
 
 	inst.print();
 
-	//bf.run();
-	dp.run();
 
-	cout << "Distance: " << bf.getFinalDistance() << endl;
-	cout << "Distance: " << dp.getFinalDistance() << endl;
-	cout << "Solution: ";
+	bf.run();
+	dp.run();
+	bnb.run();
+
+	cout << "Distance BF: " << bf.getFinalDistance() << endl;
+	cout << "Distance DP: " << dp.getFinalDistance() << endl;
+	cout << "Distance BNB: " << bnb.getFinalDistance() << endl;
+	cout << "Solution BF: ";
 	utils::printSolution(bf.getFinalSolution(), inst.getSize());
-	cout << "Solution: ";
+	cout << "Solution DP: ";
 	utils::printSolution(dp.getFinalSolution());
-	cout << endl;
+	cout << "Solution BNB: ";
+	utils::printSolution(bnb.getFinalSolution());
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

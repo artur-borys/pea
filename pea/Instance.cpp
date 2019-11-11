@@ -110,7 +110,12 @@ Instance Instance::readFromFile(string path)
 			data[rowNum] = new int[instanceSize];
 
 			for (int i = 0; i < instanceSize; i++) {
-				lineStream >> data[rowNum][i];
+				int num;
+				lineStream >> num;
+				if (num == 0) {
+					num = INT_MAX;
+				}
+				data[rowNum][i] = num;
 			}
 
 			rowNum++;
