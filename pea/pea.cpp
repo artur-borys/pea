@@ -10,14 +10,14 @@
 
 int main()
 {
-	//Instance inst = Instance::createFromFile("E:\\libs\\Dokumenty\\studia\\PEA\\Projekt\\PEA\\SMALL\\data10.txt");
-	Instance inst = Instance::createFromFile("data4.txt");
+	Instance inst = Instance::createFromFile("E:\\libs\\Dokumenty\\studia\\PEA\\Projekt\\PEA\\SMALL\\data17.txt");
+	//Instance inst = Instance::createFromFile("data4.txt");
 	BruteForce bf(inst);
-	DynamicProgramming dp(inst);
+	DynamicProgramming dp(inst, 0);
 
 	inst.print();
 
-	bf.run();
+	//bf.run();
 	dp.run();
 
 	cout << "Distance: " << bf.getFinalDistance() << endl;

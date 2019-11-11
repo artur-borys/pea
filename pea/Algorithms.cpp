@@ -32,23 +32,26 @@ int* BruteForce::getFinalSolution()
 
 void DynamicProgramming::run()
 {
-	finalSolution.push_back(0);
-	finalDistance = dp(1, 0);
+	int state = 1 << START_NODE;
+	vector<vector<int>> memo(size, vector<int>(1 << size, -1));
+	vector<vector<int>> prev(size, vector<int>(1 << size, NULL));
+	finalDistance = dp(START_NODE, state, memo, prev);
+
+	int index = START_NODE;
+	while (true) {
+		finalSolution.push_back(index);
+		int nextIndex = prev[index][state];
+		if (nextIndex == NULL) break;
+		int nextState = state | (1 << nextIndex);
+		state = nextState;
+		index = nextIndex;
+	}
+	finalSolution.push_back(START_NODE);
 }
 
-DynamicProgramming::DynamicProgramming(Instance &instance) : instance(instance) {
+DynamicProgramming::DynamicProgramming(Instance &instance, int START_NODE) : instance(instance), START_NODE(START_NODE) {
 	size = instance.getSize();
 	VISITED_ALL = (1 << size) - 1;
-	cache = new int*[VISITED_ALL];
-	for (int i = 0; i < VISITED_ALL + 1; i++) {
-		cache[i] = new int[size];
-	}
-	for (int i = 0; i < VISITED_ALL + 1; i++) {
-		for (int j = 0; j < size; j++) {
-			cache[i][j] = -1;
-		}
-	}
-	
 	data = instance.getData();
 };
 
@@ -62,29 +65,30 @@ vector<int> DynamicProgramming::getFinalSolution()
 	return finalSolution;
 }
 
-int DynamicProgramming::dp(int mask, int position)
+int DynamicProgramming::dp(int i, int state, vector<vector<int>> &memo, vector<vector<int>> &prev)
 {
-	if (mask == VISITED_ALL) {
-		return data[position][0];
+	if (state == VISITED_ALL) {
+		return data[i][START_NODE];
 	}
 
-	if (cache[mask][position] != -1) {
-		return cache[mask][position];
+	if (memo[i][state] != -1) {
+		return memo[i][state];
 	}
 
-	int distance = INT_MAX;
-	int city;
+	int minCost = INT_MAX;
+	int index = -1;
+	for (int next = 0; next < size; next++) {
+		if ((state & (1 << next)) != 0) continue;
 
-	for (int i = 0; i < size; i++) {
-		if ((mask & (1 << i)) == 0) {
-			int new_mask = mask | (1 << i);
-			int newDistance = data[position][i] + dp(new_mask, i);
-			if (newDistance < distance) {
-				distance = newDistance;
-				city = i;
-			}
+		int nextState = state | (1 << next);
+
+		int newCost = data[i][next] + dp(next, nextState, memo, prev);
+		if (newCost < minCost) {
+			minCost = newCost;
+			index = next;
 		}
 	}
 
-	return cache[mask][position] = distance;
+	prev[i][state] = index;
+	return memo[i][state] = minCost;
 }
