@@ -15,16 +15,29 @@ Instance Instance::createFromFile(string path)
 	return readFromFile(path);
 }
 
-int Instance::calculateCostFunction(int * points)
+int Instance::calculateCostFunction(int *points)
 {
 	int total = 0;
 	int previousIndex = points[0];
 	for (int i = 1; i < size; i++) {
 		int nextIndex = points[i];
-		int distance = data[previousIndex][points[i]];
-		if (debugging) {
-			cout << previousIndex << "-" << points[i] << ": " << distance << endl;
-		}
+		int distance = data[previousIndex][nextIndex];
+		total += distance;
+		previousIndex = nextIndex;
+	}
+	if (debugging) {
+		cout << previousIndex << "-" << points[0] << ": " << data[previousIndex][points[0]] << endl;
+	}
+	total += data[previousIndex][points[0]];
+	return total;
+}
+
+int Instance::calculateCostFunction(vector<int> points) {
+	int total = 0;
+	int previousIndex = points[0];
+	for (int i = 1; i < size; i++) {
+		int nextIndex = points[i];
+		int distance = data[previousIndex][nextIndex];
 		total += distance;
 		previousIndex = nextIndex;
 	}
@@ -73,6 +86,11 @@ int** Instance::getData()
 size_t Instance::getSize()
 {
 	return size;
+}
+
+int Instance::getDistance(int i, int j)
+{
+	return data[i][j];
 }
 
 

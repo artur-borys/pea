@@ -68,7 +68,9 @@ bool utils::nextPermutation(int* first, int* last) {
 
 		if (*--i < *i1) {
 			i2 = last;
-			while (!(*i < *(--i2)));
+			while (!(*i < *i2)) {
+				i2--;
+			}
 			std::iter_swap(i, i2);
 			std::reverse(i1, last);
 			return true;
@@ -96,4 +98,20 @@ void utils::printSolution(vector<int> solution)
 		cout << ", " << solution.at(i);
 	}
 	cout << endl;
+}
+
+int utils::random(int min, int max)
+{
+	unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+	default_random_engine generator(seed);
+	uniform_int_distribution<int> distribution(min, max);
+	return distribution(generator);
+}
+
+double utils::random(double min, double max)
+{
+	unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+	default_random_engine generator(seed);
+	uniform_real_distribution<> distribution(min, max);
+	return distribution(generator);
 }

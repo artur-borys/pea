@@ -15,4 +15,6 @@ namespace utils{
 	bool nextPermutation(int* first, int* last);
 	void printSolution(int* solution, int size);
 	void printSolution(vector<int> solution);
+	int random(int min, int max);
+	double random(double min, double max);
 }
