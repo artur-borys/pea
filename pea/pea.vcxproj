@@ -123,6 +123,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,6 +143,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,6 +176,23 @@
     <Text Include="data10.txt" />
     <Text Include="data11.txt" />
     <Text Include="data4.txt" />
+    <Text Include="instances_local\data10.txt" />
+    <Text Include="instances_local\data11.txt" />
+    <Text Include="instances_local\data12.txt" />
+    <Text Include="instances_local\data120.txt" />
+    <Text Include="instances_local\data13.txt" />
+    <Text Include="instances_local\data14.txt" />
+    <Text Include="instances_local\data15.txt" />
+    <Text Include="instances_local\data16.txt" />
+    <Text Include="instances_local\data17.txt" />
+    <Text Include="instances_local\data18.txt" />
+    <Text Include="instances_local\data21.txt" />
+    <Text Include="instances_local\data24.txt" />
+    <Text Include="instances_local\data39.txt" />
+    <Text Include="instances_local\data45.txt" />
+    <Text Include="instances_local\data48.txt" />
+    <Text Include="instances_local\data58.txt" />
+    <Text Include="instances_local\data71.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

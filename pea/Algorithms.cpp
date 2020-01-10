@@ -265,35 +265,20 @@ void SimulatedAnnealing::run()
 	double T = INITIAL_TEMPERATURE;
 	int t = 0;
 	int size = instance.getSize();
-	vector<int> x0;
-	int i = utils::random(0, size - 1);
-	x0.push_back(i);
-	while (x0.size() < size) {
-		int min = INT_MAX;
-		int id = -1;
-		for (int j = 0; j < size; j++) {
-			if (i == j) continue;
-			if (std::find(x0.begin(), x0.end(), j) != x0.end())	continue;
-			int distance = instance.getDistance(i, j);
-			if (distance < min) {
-				min = distance;
-				id = j;
-			}
-		}
-		i = id;
-		x0.push_back(id);
-	}
+	vector<int> x0 = generateStartingSolution();
 
 	int min_distance = instance.calculateCostFunction(x0);
 	vector<int> x = x0;
+	int repeat_count = 0;
 	while (T >= MINIMAL_TEMPTERATURE) {
-		vector<int> y = x;
-		int i = 0, j = 0;
-		while (i >= j) {
-			i = utils::random(0, size - 1);
-			j = utils::random(0, size - 1);
-		}
-		switch(NEIGHBOURHOOD) {
+		while (T >= MINIMAL_TEMPTERATURE && repeat_count < 10) {
+			vector<int> y = x;
+			int i = 0, j = 0;
+			while (i >= j) {
+				i = utils::random(0, size - 1);
+				j = utils::random(0, size - 1);
+			}
+			switch (NEIGHBOURHOOD) {
 			case 0:
 				insert(y, i, j);
 				break;
@@ -303,35 +288,50 @@ void SimulatedAnnealing::run()
 			case 2:
 				invert(y, i, j);
 				break;
-		}
+			}
 
-		int distance = instance.calculateCostFunction(y);
-		if (distance < min_distance) {
-			x = y;
-			min_distance = distance;
-		}
-		else {
-			double minProbability = utils::random(0.0, 1.0);
-			double acceptanceFactor = exp((double)((long long)min_distance - (long long)distance) / (double)T);
-			if (minProbability < acceptanceFactor) {
+			int distance = instance.calculateCostFunction(y);
+			if (distance == min_distance) {
+				repeat_count++;
+			}
+			if (distance < min_distance) {
 				x = y;
 				min_distance = distance;
+				repeat_count = 0;
 			}
+			else {
+				double minProbability = utils::random(0.0, 1.0);
+				double acceptanceFactor = exp((double)((long long)min_distance - (long long)distance) / (double)T);
+				if (minProbability < acceptanceFactor) {
+					x = y;
+					min_distance = distance;
+					repeat_count = 0;
+				}
+			}
+			T = T * TEMPERATURE_FACTOR;
 		}
-
-		//T = cooldown(T, t);
-		T = T - TEMPERATURE_FACTOR;
-		t += 1;
+		x0 = generateRandomSolution();
 	}
-
 	finalDistance = min_distance;
 	finalSolution = x;
 
 }
 
-SimulatedAnnealing::SimulatedAnnealing(Instance& instance, double initial_temperature, double minimal_temperature, double temperature_factor, int neighbourhood) :
+vector<int> SimulatedAnnealing::generateRandomSolution()
+{
+	vector<int> s;
+	while (s.size() < instance.getSize()) {
+		int i = utils::random(0, instance.getSize() - 1);
+		if (std::find(s.begin(), s.end(), i) == s.end()) {
+			s.push_back(i);
+		}
+	}
+	return s;
+}
+
+SimulatedAnnealing::SimulatedAnnealing(Instance& instance, double initial_temperature, double minimal_temperature, double temperature_factor, int neighbourhood, int starting_solution) :
 	instance(instance), INITIAL_TEMPERATURE(initial_temperature), MINIMAL_TEMPTERATURE(minimal_temperature),
-	TEMPERATURE_FACTOR(temperature_factor), NEIGHBOURHOOD(neighbourhood)
+	TEMPERATURE_FACTOR(temperature_factor), NEIGHBOURHOOD(neighbourhood), STARTING_SOLUTION(starting_solution)
 {
 }
 
@@ -373,7 +373,7 @@ bool SimulatedAnnealing::invert(vector<int>& solution, int i, int j)
 
 double SimulatedAnnealing::cooldown(double T, int t)
 {
-	double quotient = T / INITIAL_TEMPERATURE;
+	double quotient = T / (INITIAL_TEMPERATURE - MINIMAL_TEMPTERATURE);
 	if (quotient > 0.75) {
 		return T - TEMPERATURE_FACTOR * 100;
 	}
@@ -385,48 +385,92 @@ double SimulatedAnnealing::cooldown(double T, int t)
 	}
 }
 
+vector<int> SimulatedAnnealing::generateStartingSolution()
+{
+	if (STARTING_SOLUTION == 0) {
+		vector<int> s;
+		for (int i = 0; i < instance.getSize(); i++) {
+			s.push_back(i);
+		}
+		return s;
+	}
+	if (STARTING_SOLUTION == 1) {
+		vector<int> s;
+		while (s.size() < instance.getSize()) {
+			int i = utils::random(0, instance.getSize() - 1);
+			if (std::find(s.begin(), s.end(), i) == s.end()) {
+				s.push_back(i);
+			}
+		}
+		return s;
+	}
+	if (STARTING_SOLUTION == 2 || STARTING_SOLUTION == 3) {
+		int size = instance.getSize();
+		vector<int> s;
+		int i = 0;
+		if (STARTING_SOLUTION == 3) {
+			i = utils::random(0, size - 1);
+		}
+		s.push_back(i);
+		while (s.size() < size) {
+			int min = INT_MAX;
+			int id = -1;
+			for (int j = 0; j < size; j++) {
+				if (i == j) continue;
+				if (std::find(s.begin(), s.end(), j) != s.end())	continue;
+				int distance = instance.getDistance(i, j);
+				if (distance < min) {
+					min = distance;
+					id = j;
+				}
+			}
+			i = id;
+			s.push_back(id);
+		}
+
+		return s;
+	}
+
+}
+
 void TabuSearch::run()
 {
 	int size = instance.getSize();
-	vector<int> x0;
-	int i = utils::random(0, size - 1);
-	x0.push_back(i);
-	while (x0.size() < size) {
-		int min = INT_MAX;
-		int id = -1;
-		for (int j = 0; j < size; j++) {
-			if (i == j) continue;
-			if (std::find(x0.begin(), x0.end(), j) != x0.end())	continue;
-			int distance = instance.getDistance(i, j);
-			if (distance < min) {
-				min = distance;
-				id = j;
-			}
-		}
-		i = id;
-		x0.push_back(id);
-	}
+	vector<int> x0 = generateStartingSolution();
 
 	vector<int> xopt = x0;
 	int optimalDistance = instance.calculateCostFunction(xopt);
-	tabuList = vector<vector<int>>(size, vector<int>(size, 0));
+	
 
-	for(int i = 0; i < NUMBER_OF_ITERATIONS; i++) {
-		vector<int> bestNearbySolution = getBestNearbySolution(x0, i);
-		x0 = bestNearbySolution;
-		int currentDistance = instance.calculateCostFunction(x0);
-		if (currentDistance < optimalDistance) {
-			xopt = x0;
-			optimalDistance = currentDistance;
+	int iteration_count = 0;
+
+	while (iteration_count < NUMBER_OF_ITERATIONS) {
+		int repeat_count = 0;
+		tabuList = vector<vector<int>>(size, vector<int>(size, 0));
+		int i = 0;
+		while (iteration_count < NUMBER_OF_ITERATIONS && repeat_count < 10) {
+			vector<int> bestNearbySolution = getBestNearbySolution(x0, i, optimalDistance);
+			x0 = bestNearbySolution;
+			int currentDistance = instance.calculateCostFunction(x0);
+			if (currentDistance == optimalDistance) {
+				repeat_count++;
+			} else if (currentDistance < optimalDistance) {
+				xopt = x0;
+				optimalDistance = currentDistance;
+				repeat_count = 0;
+			}
+			i++;
+			iteration_count++;
 		}
+		x0 = generateRandomSolution();
 	}
 
 	finalSolution = xopt;
 	finalDistance = optimalDistance;
 }
 
-TabuSearch::TabuSearch(Instance& instance, int neighbourhood, int number_of_iterations, int tabu_length) :
-	instance(instance), NEIGHBOURHOOD(neighbourhood), NUMBER_OF_ITERATIONS(number_of_iterations), TABU_LENGTH(tabu_length)
+TabuSearch::TabuSearch(Instance& instance, int neighbourhood, int number_of_iterations, int tabu_length, int starting_solution) :
+	instance(instance), NEIGHBOURHOOD(neighbourhood), NUMBER_OF_ITERATIONS(number_of_iterations), TABU_LENGTH(tabu_length), STARTING_SOLUTION(starting_solution)
 {
 }
 
@@ -466,27 +510,26 @@ bool TabuSearch::invert(vector<int>& solution, int i, int j)
 	return true;
 }
 
-vector<int> TabuSearch::getBestNearbySolution(vector<int> solution, int it)
+vector<int> TabuSearch::getBestNearbySolution(vector<int> solution, int it, int optimalDistance)
 {
-	int bestScore = 0;
 	int instanceSize = instance.getSize();
 	int referenceDistance = instance.calculateCostFunction(solution);
-	vector<int> candidateSolution;
+	int bestDistance = INT_MAX;
+	vector<int> candidateSolution = solution;
 	vector<int> bestNearbySolution;
 	int bestI = 0, bestJ = 0;
 	for (int i = 0; i < instanceSize; i++) {
-		candidateSolution = solution;
 		for (int j = i + 1; j < instanceSize; j++) {
 			neighbouringSolution(candidateSolution, i, j);
 			int currentDistance = instance.calculateCostFunction(candidateSolution);
-			int currentScore = referenceDistance - currentDistance;
-			if (tabuList[i][j] <= it || currentScore > bestScore) {
+			if ((tabuList[i][j] <= it && currentDistance < bestDistance) || currentDistance < optimalDistance) { // ) {
 				bestI = i;
 				bestJ = j;
-				bestScore = currentScore;
+				bestDistance = currentDistance;
 				tabuList[i][j] = it + TABU_LENGTH;
 				tabuList[j][i] = it + TABU_LENGTH;
 			}
+			candidateSolution = solution;
 		}
 	}
 
@@ -512,4 +555,69 @@ bool TabuSearch::neighbouringSolution(vector<int> &solution, int i, int j)
 	}
 
 	return status;
+}
+
+vector<int> TabuSearch::generateStartingSolution()
+{
+	if (STARTING_SOLUTION == 0) {
+		vector<int> s;
+		for (int i = 0; i < instance.getSize(); i++) {
+			s.push_back(i);
+		}
+		return s;
+	}
+	if (STARTING_SOLUTION == 1) {
+		vector<int> s;
+		while (s.size() < instance.getSize()) {
+			int i = utils::random(0, instance.getSize() - 1);
+			if (std::find(s.begin(), s.end(), i) == s.end()) {
+				s.push_back(i);
+			}
+		}
+		return s;
+	}
+	if (STARTING_SOLUTION == 2 || STARTING_SOLUTION == 3) {
+		int size = instance.getSize();
+		vector<int> s;
+		int i = 0;
+		if (STARTING_SOLUTION == 3) {
+			i = utils::random(0, size - 1);
+		}
+		s.push_back(i);
+		while (s.size() < size) {
+			int min = INT_MAX;
+			int id = -1;
+			for (int j = 0; j < size; j++) {
+				if (i == j) continue;
+				if (std::find(s.begin(), s.end(), j) != s.end())	continue;
+				int distance = instance.getDistance(i, j);
+				if (distance < min) {
+					min = distance;
+					id = j;
+				}
+			}
+			i = id;
+			s.push_back(id);
+		}
+
+		return s;
+	}
+
+}
+
+vector<int> TabuSearch::generateRandomSolution()
+{
+	vector<int> s;
+	while (s.size() < instance.getSize()) {
+		int i = utils::random(0, instance.getSize() - 1);
+		if (std::find(s.begin(), s.end(), i) == s.end()) {
+			s.push_back(i);
+		}
+	}
+	return s;
+}
+
+Genetic::Genetic(Instance& instance, int POPULATION_SIZE, double Pc, double Pm, int SELECTION_METHOD, int CROSS_OPERATOR, int MUTATION_OPERATOR) :
+	instance(instance), POPULATION_SIZE(POPULATION_SIZE), Pc(Pc), Pm(Pm), SELECTION_METHOD(SELECTION_METHOD), CROSS_OPERATOR(CROSS_OPERATOR), MUTATION_OPERATOR(MUTATION_OPERATOR)
+{
 }

@@ -26,12 +26,28 @@ public:
 	int** getData();
 	size_t getSize();
 	int getDistance(int i, int j);
-	~Instance();
-private:
 	static Instance readFromFile(string path);
 	string name;
+	~Instance();
+private:
 	size_t size;
 	int **data;
 	bool debugging;
 };
 
+class InstanceVector {
+public:
+	InstanceVector();
+	InstanceVector(string name, size_t size, vector<vector<int>> data);
+	static InstanceVector createFromFile(string path);
+	int calculateCostFunction(vector<int> points);
+	void print();
+	vector<vector<int>> getData();
+	size_t getSize();
+	int getDistance(int i, int j);
+	string name;
+	~InstanceVector();
+private:
+	size_t size;
+	vector<vector<int>> data;
+};

@@ -10,6 +10,19 @@
 #include "measure.h"
 #include <thread>
 #include <fstream>
+#include <filesystem>
+#include <iomanip>
+
+#define INSERT 0
+#define SWAP 1
+#define INVERT 2
+
+#define NATURAL_SOLUTION 0
+#define RANDOM_SOLUTION 1
+#define GREEDY_0 2
+#define GREEDY_RANDOM 3
+
+namespace fs = std::filesystem;
 
 Instance readInstance() {
 	string path;
@@ -185,20 +198,452 @@ void measurements() {
 	measureBNB();
 }
 
+string getNM(int n) {
+	switch (n) {
+	case 0:
+		return "INSERT";
+	case 1:
+		return "SWAP";
+	case 2:
+		return "INVERT";
+	}
+}
+
+string getSS(int ss) {
+	switch (ss) {
+	case 0:
+		return "NATURAL_SOLUTION";
+	case 1:
+		return "RANDOM_SOLUTION";
+	case 2:
+		return "GREEDY_0";
+	case 3:
+		return "GREEDY_RANDOM";
+	}
+}
+
+struct results {
+	double avgTime;
+	double bestScore;
+	double avgScore;
+	string unit;
+	string name;
+};
+
+results testSA(string path, int optimal, double INIT_TEMP, double MIN_TEMP, double TEMP_FACTOR, int nType, int sSolution, int repeats) {
+	Instance instance = Instance::createFromFile(path);
+	measure t;
+	results r;
+	r.bestScore = INT_MAX;
+	r.name = path + "_" + to_string(INIT_TEMP) + "_" + to_string(MIN_TEMP) + "_" + to_string(TEMP_FACTOR) +
+		"_" + getNM(nType) + "_" + getSS(sSolution);
+	for (int i = 0; i < repeats; i++) {
+		{
+			SimulatedAnnealing sa(instance, INIT_TEMP, MIN_TEMP, TEMP_FACTOR, nType, sSolution);
+			t.start();
+			sa.run();
+			t.stop();
+			r.avgTime += t.result();
+			double score = (double)abs(optimal - sa.getFinalDistance()) / (double)optimal * 100.0;
+			if (score < r.bestScore) {
+				r.bestScore = score;
+			}
+			r.avgScore += score;
+		}
+	}
+
+	r.avgTime /= (double)repeats;
+	r.avgScore /= (double)repeats;
+	r.unit = t.unit;
+	return r;
+}
+
+results testTS(string path, int optimal, int ITERATIONS, int tabu_length, int nType, int sSolution, int repeats) {
+	Instance instance = Instance::createFromFile(path);
+	measure t;
+	results r;
+	r.bestScore = INT_MAX;
+	r.name = path + "_" + to_string(ITERATIONS) + "_" + to_string(tabu_length) + 
+		"_" + getNM(nType) + "_" + getSS(sSolution);
+	for (int i = 0; i < repeats; i++) {
+		{
+			TabuSearch sa(instance, nType, ITERATIONS, tabu_length, sSolution);
+			t.start();
+			sa.run();
+			t.stop();
+			r.avgTime += t.result();
+			double score = (double)abs(optimal - sa.getFinalDistance()) / (double)optimal * 100.0;
+			if (score < r.bestScore) {
+				r.bestScore = score;
+			}
+			r.avgScore += score;
+		}
+	}
+
+	r.avgTime /= (double)repeats;
+	r.avgScore /= (double)repeats;
+	r.unit = t.unit;
+	return r;
+}
+
+results testSA(Instance instance, int optimal, double INIT_TEMP, double MIN_TEMP, double TEMP_FACTOR, int nType, int sSolution, int repeats) {
+	measure t;
+	results r;
+	r.bestScore = INT_MAX;
+	r.name = instance.name + "_" + to_string(INIT_TEMP) + "_" + to_string(MIN_TEMP) + "_" + to_string(TEMP_FACTOR) +
+		"_" + getNM(nType) + "_" + getSS(sSolution);
+	for (int i = 0; i < repeats; i++) {
+		{
+			SimulatedAnnealing sa(instance, INIT_TEMP, MIN_TEMP, TEMP_FACTOR, nType, sSolution);
+			t.start();
+			sa.run();
+			t.stop();
+			r.avgTime += t.result();
+			double score = (double)abs(optimal - sa.getFinalDistance()) / (double)optimal;
+			if (score < r.bestScore) {
+				r.bestScore = score;
+			}
+			r.avgScore += score;
+		}
+	}
+
+	r.avgTime /= (double)repeats;
+	r.avgScore /= (double)repeats;
+	r.unit = t.unit;
+	return r;
+}
+
+results testTS(Instance instance, int optimal, int ITERATIONS, int tabu_length, int nType, int sSolution, int repeats) {
+	measure t;
+	results r;
+	r.bestScore = INT_MAX;
+	r.name = instance.name + "_" + to_string(ITERATIONS) + "_" + to_string(tabu_length) +
+		"_" + getNM(nType) + "_" + getSS(sSolution);
+	for (int i = 0; i < repeats; i++) {
+		{
+			TabuSearch sa(instance, nType, ITERATIONS, tabu_length, sSolution);
+			t.start();
+			sa.run();
+			t.stop();
+			r.avgTime += t.result();
+			double score = (double)abs(optimal - sa.getFinalDistance()) / (double)optimal;
+			if (score < r.bestScore) {
+				r.bestScore = score;
+			}
+			r.avgScore += score;
+		}
+	}
+
+	r.avgTime /= (double)repeats;
+	r.avgScore /= (double)repeats;
+	r.unit = t.unit;
+	return r;
+}
+
+void measureSA() {
+	int repeats = 50;
+	double temp_factor[] = { 0.995, 0.999, 0.9995 };
+	int n[] = { INSERT, SWAP, INVERT };
+	int s[] = { NATURAL_SOLUTION, RANDOM_SOLUTION, GREEDY_RANDOM };
+	vector<int> optimal = {
+		/*212,
+		202,
+		264,
+		269,
+		125,
+		291,
+		156,*/
+		2085,
+		/*187,
+		2707,
+		1272,*/
+		1530,
+		/*1613,
+		14422,*/
+		25395,
+		//1950,
+		6942
+	};
+	vector<string> paths = {
+		/*"data10.txt",
+		"data11.txt",
+		"data12.txt",
+		"data13.txt",
+		"data14.txt",
+		"data15.txt",
+		"data16.txt",*/
+		"data17.txt",
+		/*"data18.txt",
+		"data21.txt",
+		"data24.txt",*/
+		"data39.txt",
+		//"data45.txt",
+		/*"data48.txt",*/
+		"data58.txt",
+		//"data71.txt",
+		"data120.txt"
+	};
+	double min_temp = 0.995;
+	double init_temp = 10.0;
+	int a = 0;
+	for (int a = 0; a < optimal.size(); a++) {
+		Instance instance = Instance::createFromFile("instances_local/" + paths[a]);
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				for (int k = 0; k < 3; k++) {
+					ofstream f("measurements/sa.csv", ios::out | ios::app);
+					results r;
+					r = testSA(instance, optimal[a], init_temp, min_temp, temp_factor[i], n[j], s[k], repeats);
+					f << instance.getSize() << ";" << temp_factor[i] << ";"
+						<< getNM(n[j]) << ";" << getSS(s[k]) << ";" << r.avgTime << ";" << r.unit << ";"
+						<< r.avgScore << ";" << r.bestScore << ";" << endl;
+					f.close();
+				}
+			}
+		}
+	}
+	
+}
+
+void measureTS() {
+	int repeats = 50;
+	int ITERATIONS[] = { 100, 1000, 5000 };
+	int length_div[] = { 2, 1 };
+	int n[] = { INSERT, SWAP, INVERT };
+	int s[] = { NATURAL_SOLUTION, RANDOM_SOLUTION, GREEDY_RANDOM };
+	vector<int> optimal = {
+		/*212,
+		202,
+		264,
+		269,
+		125,
+		291,
+		156,*/
+		2085,
+		/*187,
+		2707,
+		1272,*/
+		1530,
+		/*1613,
+		14422,*/
+		25395,
+		//1950,
+		6942
+	};
+	vector<string> paths = {
+		/*"data10.txt",
+		"data11.txt",
+		"data12.txt",
+		"data13.txt",
+		"data14.txt",
+		"data15.txt",
+		"data16.txt",*/
+		"data17.txt",
+		/*"data18.txt",
+		"data21.txt",
+		"data24.txt",*/
+		"data39.txt",
+		//"data45.txt",
+		/*"data48.txt",*/
+		"data58.txt",
+		//"data71.txt",
+		"data120.txt"
+	};
+	int a = 0;
+	for (int a = 0; a < optimal.size(); a++) {
+		Instance instance = Instance::createFromFile("instances_local/" + paths[a]);
+		int size = instance.getSize();
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				for (int k = 0; k < 3; k++) {
+					for (int l = 0; l < 2; l++) {
+						ofstream f("measurements/ts.csv", ios::out | ios::app);
+						results r;
+						r = testTS(instance, optimal[a], ITERATIONS[i], size/length_div[l], n[j], s[k], repeats);
+						f << size << ";" << ITERATIONS[i] << ";" << size / length_div[l] << ";" 
+							<< getNM(n[j]) << ";" << getSS(s[k]) << ";" << r.avgTime << ";" << r.unit << ";"
+							<< r.avgScore << ";" << r.bestScore << ";" << endl;
+						f.close();
+					}
+				}
+			}
+		}
+	}
+
+}
+
+void measureLocal() {
+	thread sa(measureSA);
+	thread ts(measureTS);
+	sa.join();
+	ts.join();
+}
+
+void measureSASmall() {
+	int repeats = 50;
+	vector<int> optimal = {
+		212,
+		202,
+		264,
+		269,
+		125,
+		291,
+		156,
+		2085,
+		187,
+		2707,
+		1286,
+		1530,
+		1613,
+		14422,
+		25395,
+		1950,
+		6942
+	};
+	vector<string> paths = {
+		"data10.txt",
+		"data11.txt",
+		"data12.txt",
+		"data13.txt",
+		"data14.txt",
+		"data15.txt",
+		"data16.txt",
+		"data17.txt",
+		"data18.txt",
+		"data21.txt",
+		"data34.txt",
+		"data39.txt",
+		"data45.txt",
+		"data48.txt",
+		"data58.txt",
+		"data71.txt",
+		"data120.txt"
+	};
+	double min_temp = 0.995;
+	double init_temp = 100.0;
+	int a = 0;
+	for (int a = 0; a < optimal.size(); a++) {
+		Instance instance = Instance::createFromFile("instances_local/" + paths[a]);
+		int size = instance.getSize();
+		ofstream f("measurements/sa_small_avg.csv", ios::out | ios::app);
+		ofstream f1("measurements/sa_small_best.csv", ios::out | ios::app);
+		ofstream f2("measurements/sa_small_time.csv", ios::out | ios::app);
+		results r;
+		vector<double> temp_factor = { 0.99, 0.995, 0.999, 0.9995 };
+		for (int i = 0; i < temp_factor.size(); i++) {
+			r = testSA(instance, optimal[a], init_temp, min_temp, temp_factor[i], INVERT, GREEDY_RANDOM, repeats);
+			f << std::fixed << std::setprecision(4) << r.avgScore << " ";
+			f1 << std::fixed << std::setprecision(4) << r.bestScore << " ";
+			f2 << std::fixed << std::setprecision(4) << r.avgTime << " ";
+		}
+
+		f << endl;
+		f1 << endl;
+		f2 << endl;
+	}
+
+}
+
+void measureTSSmall() {
+	int repeats = 50;
+	int ITERATIONS[] = { 100, 1000, 5000 };
+	int length_div[] = { 2, 1 };
+	int n[] = { INSERT, SWAP, INVERT };
+	int s[] = { NATURAL_SOLUTION, RANDOM_SOLUTION, GREEDY_RANDOM };
+	vector<int> optimal = {
+		212,
+		202,
+		264,
+		269,
+		125,
+		291,
+		156,
+		2085,
+		187,
+		2707,
+		1286,
+		1530,
+		1613,
+		14422,
+		25395,
+		1950,
+		6942
+	};
+	vector<string> paths = {
+		"data10.txt",
+		"data11.txt",
+		"data12.txt",
+		"data13.txt",
+		"data14.txt",
+		"data15.txt",
+		"data16.txt",
+		"data17.txt",
+		"data18.txt",
+		"data21.txt",
+		"data34.txt",
+		"data39.txt",
+		"data45.txt",
+		"data48.txt",
+		"data58.txt",
+		"data71.txt",
+		"data120.txt"
+	};
+	int a = 0;
+	for (int a = 0; a < optimal.size(); a++) {
+		Instance instance = Instance::createFromFile("instances_local/" + paths[a]);
+		int size = instance.getSize();
+		ofstream f("measurements/ts_small_avg.csv", ios::out | ios::app);
+		ofstream f1("measurements/ts_small_best.csv", ios::out | ios::app);
+		ofstream f2("measurements/ts_small_time.csv", ios::out | ios::app);
+		results r;
+		vector<int> iters = { 100, 500, 1000, 2000, 3000, 4000 };
+		for (int i = 0; i < iters.size(); i++) {
+			r = testTS(instance, optimal[a], iters[i], size / 2, INVERT, GREEDY_RANDOM, repeats);
+			f << std::fixed << std::setprecision(4) << r.avgScore  << " ";
+			f1 << std::fixed << std::setprecision(4) << r.bestScore << " ";
+			f2 << std::fixed << std::setprecision(4) << r.avgTime << " ";
+		}
+
+		f << endl;
+		f1 << endl;
+		f2 << endl;
+	}
+
+}
+
 int main()
 {
 	int selection;
 	string warning;
-	Instance inst = Instance::createFromFile("TSP\\data26.txt");
-	/*SimulatedAnnealing sa(inst, 10000, 1, 0.005, 0);
-	sa.run();
-	cout << sa.getFinalDistance() << endl;
-	utils::printSolution(sa.getFinalSolution());*/
-	TabuSearch ta(inst, 0, 10000, inst.getSize() * 3);
-	ta.run();
-	cout << ta.getFinalDistance() << endl;
-	utils::printSolution(ta.getFinalSolution());
+	thread t1(measureTSSmall);
+	thread t2(measureSASmall);
+	t1.join();
+	t2.join();
 	return 0;
+	/*{
+		SimulatedAnnealing sa(inst, 5999.0, 0.995, 0.005, INVERT, GREEDY_0);
+		t.start();
+		sa.run();
+		t.stop();
+		cout << sa.getFinalDistance() << endl;
+		cout << abs(optimal - sa.getFinalDistance()) * 100.0 / optimal << "% worse than optimal" << endl;
+		t.printResult();
+		cout << "\n\n";
+	}*/
+	//cout << "TS: 1000, instanze size, SWAP, GREEDY_0" << endl;
+	/*{
+		TabuSearch ts(inst, INVERT, 5000, inst.getSize(), GREEDY_RANDOM);
+		t.start();
+		ts.run();
+		t.stop();
+		cout << ts.getFinalDistance() << endl;
+		cout << abs(optimal - ts.getFinalDistance()) * 100.0 / optimal << "% worse than optimal" << endl;
+		t.printResult();
+		cout << "\n\n";
+	}*/
+	//presentation();
+	return 0;
+
 	while (true) {
 		system("CLS");
 		if (!warning.empty()) {

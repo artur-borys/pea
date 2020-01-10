@@ -25,9 +25,6 @@ int Instance::calculateCostFunction(int *points)
 		total += distance;
 		previousIndex = nextIndex;
 	}
-	if (debugging) {
-		cout << previousIndex << "-" << points[0] << ": " << data[previousIndex][points[0]] << endl;
-	}
 	total += data[previousIndex][points[0]];
 	return total;
 }
@@ -40,9 +37,6 @@ int Instance::calculateCostFunction(vector<int> points) {
 		int distance = data[previousIndex][nextIndex];
 		total += distance;
 		previousIndex = nextIndex;
-	}
-	if (debugging) {
-		cout << previousIndex << "-" << points[0] << ": " << data[previousIndex][points[0]] << endl;
 	}
 	total += data[previousIndex][points[0]];
 	return total;
@@ -96,7 +90,7 @@ int Instance::getDistance(int i, int j)
 
 Instance::~Instance()
 {
-	delete[] data;
+
 }
 
 Instance Instance::readFromFile(string path)
@@ -144,4 +138,85 @@ Instance Instance::readFromFile(string path)
 		return Instance(instanceName, instanceSize, data);
 	}
 	return Instance();
+}
+
+InstanceVector::InstanceVector()
+{
+}
+
+InstanceVector::InstanceVector(string name, size_t size, vector<vector<int>> data) : name(name), size(size), data(data)
+{
+}
+
+InstanceVector InstanceVector::createFromFile(string path)
+{
+	string name;
+	size_t size;
+	vector<vector<int>> data;
+	ifstream f(path);
+
+	if (!f.is_open()) {
+		cout << "Error when reading file" << endl;
+	}
+	else {
+		string line;
+
+		f >> name;
+		f >> size;
+
+		while (getline(f, line)) {
+			stringstream ss(line);
+			if (line.empty()) {
+				continue;
+			}
+
+			int c;
+
+			vector<int> row;
+			for (int i = 0; i < size; i++) {
+				ss >> c;
+				//if(!s.empty())
+				row.push_back(c);
+			}
+
+			data.push_back(row);
+
+		}
+
+		return InstanceVector(name, size, data);
+	}
+}
+
+int InstanceVector::calculateCostFunction(vector<int> points)
+{
+	int total = 0;
+	int previousIndex = points[0];
+	for (int i = 1; i < size; i++) {
+		int nextIndex = points[i];
+		int distance = data[previousIndex][nextIndex];
+		total += distance;
+		previousIndex = nextIndex;
+	}
+	total += data[previousIndex][points[0]];
+	return total;
+}
+
+vector<vector<int>> InstanceVector::getData()
+{
+	return data;
+}
+
+size_t InstanceVector::getSize()
+{
+	return size;
+}
+
+int InstanceVector::getDistance(int i, int j)
+{
+	return data[i][j];
+}
+
+InstanceVector::~InstanceVector()
+{
+	data.clear();
 }
