@@ -628,10 +628,9 @@ void Genetic::run()
 	for (int i = 0; i < ITERATION_COUNT; i++) {
 		vector<Tour> nextGeneration;
 		while (nextGeneration.size() < POPULATION_SIZE) {
-			Tour p1 = selection();
-			Tour p2 = selection();
-
 			if (utils::random(0.0, 1.0) < Pc) {
+				Tour p1 = selection();
+				Tour p2 = selection();
 				vector<Tour> children = crossPair(p1, p2);
 
 				for (int j = 0; j < children.size(); j++) {
