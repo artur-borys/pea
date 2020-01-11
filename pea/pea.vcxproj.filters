@@ -30,6 +30,9 @@
     <ClInclude Include="measure.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Tour.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -48,6 +51,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="measure.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tour.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

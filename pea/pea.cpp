@@ -613,6 +613,12 @@ void measureTSSmall() {
 
 int main()
 {
+	InstanceVector inst = InstanceVector::createFromFile("TSP/data120.txt");
+	Genetic g(inst, 1000, 240, 0.7, 0.2, 1, 1, 3);
+	g.TOURNAMENT_SIZE = 5;
+	g.run();
+	cout << g.getFinalDistance() << endl;
+	return 0;
 	int selection;
 	string warning;
 	thread t1(measureTSSmall);

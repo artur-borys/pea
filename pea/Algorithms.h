@@ -5,6 +5,7 @@
 #include <bitset>
 #include <queue>
 #include <algorithm>
+#include "Tour.h"
 
 class BruteForce {
 public:
@@ -122,31 +123,34 @@ class Genetic {
 public:
 	int POPULATION_SIZE; // rozmiar populacji
 	double Pc, Pm; // p-stwa krzy¿owania i mutacji
-	int SELECTION_METHOD, CROSS_OPERATOR, MUTATION_OPERATOR;
+	int SELECTION_METHOD, CROSS_OPERATOR, MUTATION_OPERATOR, ITERATION_COUNT, TOURNAMENT_SIZE;
 	void run();
 	vector<int> getFinalSolution();
 	int getFinalDistance();
-	Genetic(Instance& instance, int POPULATION_SIZE, double Pc, double Pm, int SELECTION_METHOD, int CROSS_OPERATOR, int MUTATION_OPERATOR);
+	Genetic(InstanceVector& instance, int ITERATION_COUNT, int POPULATION_SIZE, double Pc, double Pm, int SELECTION_METHOD, int CROSS_OPERATOR, int MUTATION_OPERATOR);
 private:
-	Instance& instance;
+
+	InstanceVector& instance;
 	int finalDistance = -1;
 	vector<int> finalSolution;
-	vector<vector<int>> population;
-	vector<vector<int>> matingPool;
+	vector<Tour> population;
+	vector<Tour> matingPool;
 
-	void selectMatingPool();
+	vector<Tour> generatePopulation();
+
+	Tour selection();
 	double fitnessFunction(vector<int> x);
 
 	vector<vector<int>> crossMatingPool();
-	vector<vector<int>> crossPair(vector<int> p, vector<int> q);
-	vector<vector<int>> _corss_PMS(vector<int> p, vector<int> q);
-	vector<vector<int>> _cross_OX(vector<int> p, vector<int> q);
+	vector<Tour> crossPair(Tour p, Tour q);
+	vector<Tour> _corss_PMS(vector<int> p, vector<int> q);
+	vector<Tour> _cross_OX(Tour p, Tour q);
 	vector<vector<int>> _cros_EX(vector<int> p, vector<int> q);
 
-	void mutate(vector<int> &x);
+	void mutate(Tour &x);
 	void mutateGeneration(vector<vector<int>> &g);
-	void _mutate_inversion(vector<int>& x);
-	void _mutate_insertion(vector<int>& x);
-	void _mutate_displacement(vector<int>& x);
-	void _mutate_transposition(vector<int>& x);
+	void _mutate_inversion(Tour& x);
+	void _mutate_insertion(Tour& x);
+	void _mutate_scramble(Tour& x);
+	void _mutate_transposition(Tour& x);
 };

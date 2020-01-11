@@ -617,7 +617,201 @@ vector<int> TabuSearch::generateRandomSolution()
 	return s;
 }
 
-Genetic::Genetic(Instance& instance, int POPULATION_SIZE, double Pc, double Pm, int SELECTION_METHOD, int CROSS_OPERATOR, int MUTATION_OPERATOR) :
-	instance(instance), POPULATION_SIZE(POPULATION_SIZE), Pc(Pc), Pm(Pm), SELECTION_METHOD(SELECTION_METHOD), CROSS_OPERATOR(CROSS_OPERATOR), MUTATION_OPERATOR(MUTATION_OPERATOR)
+void Genetic::run()
 {
+	population = generatePopulation();
+
+	Tour bestTour = *min_element(population.begin(), population.end(), [](Tour a, Tour b) {
+		return a.length < b.length;
+		});
+
+	for (int i = 0; i < ITERATION_COUNT; i++) {
+		vector<Tour> nextGeneration;
+		while (nextGeneration.size() < POPULATION_SIZE) {
+			Tour p1 = selection();
+			Tour p2 = selection();
+
+			if (utils::random(0.0, 1.0) < Pc) {
+				vector<Tour> children = crossPair(p1, p2);
+
+				for (int j = 0; j < children.size(); j++) {
+					if (utils::random(0.0, 1.0) < Pm) {
+						mutate(children[j]);
+					}
+					if (children[j].length < bestTour.length) {
+						bestTour = children[j];
+					}
+					nextGeneration.push_back(children[j]);
+				}
+			}
+			
+		}
+
+		population = nextGeneration;
+	}
+	
+	finalSolution = bestTour.cities;
+	finalDistance = bestTour.length;
+}
+
+int Genetic::getFinalDistance()
+{
+	return finalDistance;
+}
+
+Genetic::Genetic(InstanceVector& instance, int ITERATION_COUNT, int POPULATION_SIZE, double Pc, double Pm, int SELECTION_METHOD, int CROSS_OPERATOR, int MUTATION_OPERATOR) :
+	instance(instance), ITERATION_COUNT(ITERATION_COUNT), POPULATION_SIZE(POPULATION_SIZE), Pc(Pc), Pm(Pm), SELECTION_METHOD(SELECTION_METHOD), CROSS_OPERATOR(CROSS_OPERATOR), MUTATION_OPERATOR(MUTATION_OPERATOR)
+{
+}
+
+vector<Tour> Genetic::generatePopulation()
+{
+	vector<Tour> pop;
+	while (pop.size() < POPULATION_SIZE) {
+		vector<int> solution;
+		int instance_size = instance.getSize();
+		while (solution.size() < instance_size) {
+			int i = utils::random(0, instance_size - 1);
+			if (find(solution.begin(), solution.end(), i) == solution.end()) {
+				solution.push_back(i);
+			}
+		}
+		Tour t(solution, instance.calculateCostFunction(solution));
+		pop.push_back(t);
+	}
+	return pop;
+}
+
+Tour Genetic::selection()
+{
+	Tour *best = &population[utils::random(0, POPULATION_SIZE - 1)];
+	for (int i = 1; i < TOURNAMENT_SIZE; i++) {
+		int id = utils::random(0, POPULATION_SIZE - 1);
+		Tour *candidate = &population[id];
+		if (candidate->length < best->length) {
+			best = candidate;
+		}		
+	}
+	return *best;
+}
+
+vector<Tour> Genetic::crossPair(Tour p, Tour q)
+{
+	switch (CROSS_OPERATOR) {
+	case 1:
+		return _cross_OX(p, q);
+	}
+}
+
+vector<Tour> Genetic::_cross_OX(Tour p, Tour q)
+{
+	vector<int> parent1 = p.cities;
+	vector<int> parent2 = q.cities;
+	int size = parent1.size();
+
+	int n1 = utils::random(0, size);
+	int n2 = utils::random(0, size - 1);
+
+	int start = min({ n1, n2 });
+	int end = max({ n1, n2 });
+
+	vector<int> child1;
+	vector<int> child2;
+
+	for (int i = 0; i < end; i++) {
+		child1.push_back(parent1[i]);
+		child2.push_back(parent2[i]);
+	}
+
+	int geneIndex = 0;
+	int geneInParent1 = 0;
+	int geneInParent2 = 0;
+
+	for (int i = 0; i < size; i++) {
+		geneIndex = (end + i) % size;
+		geneInParent1 = parent1[geneIndex];
+		geneInParent2 = parent2[geneIndex];
+
+		if (find(child1.begin(), child1.end(), geneInParent2) == child1.end()) {
+			child1.push_back(geneInParent2);
+		}
+
+		if (find(child2.begin(), child2.end(), geneInParent1) == child2.end()) {
+			child2.push_back(geneInParent1);
+		}
+	}
+
+	rotate(child1.begin(), child1.begin() + start, child1.end());
+	rotate(child2.begin(), child2.begin() + start, child2.end());
+
+	Tour c1(child1, instance.calculateCostFunction(child1));
+	Tour c2(child2, instance.calculateCostFunction(child2));
+
+	return vector<Tour>({ c1, c2 });
+}
+
+void Genetic::mutate(Tour& x)
+{
+	switch (MUTATION_OPERATOR) {
+	case 0:
+		_mutate_inversion(x);
+		break;
+	case 1:
+		_mutate_insertion(x);
+	case 2:
+		_mutate_transposition(x);
+	case 3:
+		_mutate_scramble(x);
+	}
+
+	x.length = instance.calculateCostFunction(x.cities);
+}
+
+void Genetic::_mutate_inversion(Tour& x)
+{
+	int i = utils::random(0, instance.getSize() - 2);
+	int j = utils::random(0, instance.getSize() - 1);
+
+	int start = min({ i, j });
+	int stop = max({ i, j });
+
+	reverse(x.cities.begin() + start, x.cities.begin() + stop);
+}
+
+void Genetic::_mutate_insertion(Tour& x)
+{
+	int i = utils::random(0, instance.getSize() - 2);
+	int j = utils::random(0, instance.getSize() - 1);
+
+	int begin = min({ i, j });
+	int end = max({ i, j });
+
+	int c = x.cities[end];
+
+	x.cities.erase(x.cities.begin() + end);
+	x.cities.insert(x.cities.begin() + begin, c);
+}
+
+void Genetic::_mutate_scramble(Tour& x)
+{
+	int i = utils::random(0, instance.getSize() - 2);
+	int j = utils::random(0, instance.getSize() - 1);
+
+	int begin = min({ i, j });
+	int end = max({ i, j });
+
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+
+	shuffle(x.cities.begin() + begin, x.cities.begin() + end, default_random_engine(seed));
+}
+
+void Genetic::_mutate_transposition(Tour& x)
+{
+	int i = utils::random(0, instance.getSize() - 1);
+	int j;
+	do {
+		j = utils::random(0, instance.getSize() - 1);
+	} while (i == j);
+
+	iter_swap(x.cities.begin() + i, x.cities.begin() + j);
 }
