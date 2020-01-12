@@ -627,6 +627,7 @@ void Genetic::run()
 
 	for (int i = 0; i < ITERATION_COUNT; i++) {
 		vector<Tour> nextGeneration;
+		Tour lastBest = bestTour;
 		while (nextGeneration.size() < POPULATION_SIZE) {
 			if (utils::random(0.0, 1.0) < Pc) {
 				Tour p1 = selection();
@@ -640,7 +641,23 @@ void Genetic::run()
 					if (children[j].length < bestTour.length) {
 						bestTour = children[j];
 					}
-					nextGeneration.push_back(children[j]);
+				}
+
+				Tour bestParent = min({ p1, p2 }, [](Tour a, Tour b) {
+					return a.length < b.length;
+					});
+
+				Tour bestChild = min({ children[0], children[1] }, [](Tour a, Tour b) {
+					return a.length < b.length;
+					});
+
+				if (bestParent.length < bestChild.length) {
+					nextGeneration.push_back(bestParent);
+					nextGeneration.push_back(bestChild);
+				}
+				else {
+					nextGeneration.push_back(children[0]);
+					nextGeneration.push_back(children[1]);
 				}
 			}
 			
@@ -697,9 +714,76 @@ Tour Genetic::selection()
 vector<Tour> Genetic::crossPair(Tour p, Tour q)
 {
 	switch (CROSS_OPERATOR) {
+	case 0:
+		return _cross_PMX(p, q);
 	case 1:
 		return _cross_OX(p, q);
 	}
+}
+
+vector<Tour> Genetic::_cross_PMX(Tour p, Tour q)
+{
+	struct mapping {
+		int from;
+		int to;
+	};
+
+	vector<mapping> mapping1, mapping2;
+
+	int i = utils::random(0, instance.getSize() - 2);
+	int j = utils::random(0, instance.getSize() - 1);
+	while (j == i) {
+		j = utils::random(0, instance.getSize() - 1);
+	}
+
+	int begin = min({ i, j });
+	int end = max({ i, j });
+
+	vector<int> child1, child2;
+	child1.resize(instance.getSize(), -1);
+	child2.resize(instance.getSize(), -1);
+
+	for (int i = begin; i < end; i++) {
+		mapping m1, m2;
+		m1.from = p.cities[i];
+		m1.to = q.cities[i];
+		m2.to = p.cities[i];
+		m2.from = q.cities[i];
+		mapping1.push_back(m1);
+		mapping2.push_back(m2);
+		child1[i] = m1.to;
+		child2[i] = m1.from;
+	}
+	
+	for (int i = 0, j = 0; i < instance.getSize(); i++, j++) {
+		if (i < begin || i >= end) {
+			int p1_city = p.cities[i];
+			int p2_city = q.cities[i];
+			while (find(child1.begin() + begin, child1.begin() + end, p1_city) != child1.begin() + end) {
+				for (auto mapping : mapping2) {
+					if (mapping.from == p1_city) {
+						p1_city = mapping.to;
+						break;
+					}
+				}
+			}
+			while (find(child2.begin() + begin, child2.begin() + end, p2_city) != child2.begin() + end) {
+				for (auto mapping : mapping1) {
+					if (mapping.from == p2_city) {
+						p2_city = mapping.to;
+						break;
+					}
+				}
+			}
+			child1[i] = p1_city;
+			child2[i] = p2_city;
+		}
+	}
+
+	Tour c1(child1, instance.calculateCostFunction(child1));
+	Tour c2(child2, instance.calculateCostFunction(child2));
+
+	return vector<Tour>({ c1, c2 });
 }
 
 vector<Tour> Genetic::_cross_OX(Tour p, Tour q)

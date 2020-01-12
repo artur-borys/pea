@@ -143,7 +143,7 @@ private:
 
 	vector<vector<int>> crossMatingPool();
 	vector<Tour> crossPair(Tour p, Tour q);
-	vector<Tour> _corss_PMS(vector<int> p, vector<int> q);
+	vector<Tour> _cross_PMX(Tour p, Tour q);
 	vector<Tour> _cross_OX(Tour p, Tour q);
 	vector<vector<int>> _cros_EX(vector<int> p, vector<int> q);
 

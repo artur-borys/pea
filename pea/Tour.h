@@ -7,6 +7,7 @@ using namespace std;
 class Tour
 {
 public:
+	Tour() {};
 	Tour(vector<int> cities, int length);
 	vector<int> cities;
 	double fitness;
