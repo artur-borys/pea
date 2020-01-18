@@ -6,6 +6,7 @@
 #include <queue>
 #include <algorithm>
 #include "Tour.h"
+#include <chrono>
 
 class BruteForce {
 public:
@@ -139,18 +140,47 @@ private:
 	vector<Tour> generatePopulation();
 
 	Tour selection();
-	double fitnessFunction(vector<int> x);
+	Tour _selection_roulette();
+	Tour _selection_tournament();
 
-	vector<vector<int>> crossMatingPool();
 	vector<Tour> crossPair(Tour p, Tour q);
 	vector<Tour> _cross_PMX(Tour p, Tour q);
 	vector<Tour> _cross_OX(Tour p, Tour q);
-	vector<vector<int>> _cros_EX(vector<int> p, vector<int> q);
 
 	void mutate(Tour &x);
-	void mutateGeneration(vector<vector<int>> &g);
 	void _mutate_inversion(Tour& x);
 	void _mutate_insertion(Tour& x);
 	void _mutate_scramble(Tour& x);
 	void _mutate_transposition(Tour& x);
+};
+
+class Ant {
+public:
+	vector<bool> tabuList;
+	Ant() {};
+	int starting_city;
+	int size;
+	Ant(int starting_city, int size);
+	void resetTabu();
+	int getTabu(int pos);
+	void setTabu(int pos);
+};
+
+class AntColony {
+public:
+	int ANTS_COUNT, ITER_COUNT, STRATEGY, MAX_TIME;
+	double feromone_quantity, alpha, beta, initial_feromone = 0.5;
+	double vaporating_factor;
+	AntColony(InstanceVector& instance) : instance(instance) {};
+	vector<vector<double>> feromone;
+	void run();
+	int selectNextCity(Ant& ant, int city);
+	double delta_feromone(int i, int j);
+	vector<int> getFinalSolution();
+	int getFinalDistance();
+private:
+	InstanceVector& instance;
+	vector<int> finalSolution;
+	double parametersCalculate(int i, int j);
+	int finalDistance;
 };

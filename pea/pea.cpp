@@ -22,6 +22,20 @@
 #define GREEDY_0 2
 #define GREEDY_RANDOM 3
 
+
+#define S_ROULETTE 0
+#define S_TOURNAMENT 1
+#define C_PMX 0
+#define C_OX 0
+#define M_INV 0
+#define M_INS 1
+#define M_TRA 2
+#define M_SCR 3
+
+#define DAS 0
+#define QAS 1
+#define CAS 2
+
 namespace fs = std::filesystem;
 
 Instance readInstance() {
@@ -613,10 +627,23 @@ void measureTSSmall() {
 
 int main()
 {
-	InstanceVector inst = InstanceVector::createFromFile("SMALL/data18.txt");
-	Genetic g(inst, 10, 1000, 1, 1, 1, 1, 0);
-	g.TOURNAMENT_SIZE = 5;
-	g.Pm = 0.0001;
+	InstanceVector inst = InstanceVector::createFromFile("ATSP/data443.txt");
+	AntColony a(inst);
+	a.ANTS_COUNT = 443;
+	a.STRATEGY = DAS;
+	a.alpha = 1.0;
+	a.beta = 5.0;
+	a.feromone_quantity = 10.0;
+	a.vaporating_factor = 0.5;
+	a.MAX_TIME = 10;
+	a.initial_feromone = (double)a.ANTS_COUNT / 2720.0;
+	a.run();
+	cout << a.getFinalDistance() << endl;
+	//utils::printSolution(a.getFinalSolution());
+	return 0;
+	Genetic g(inst, 1000, 100, 1, 1, S_TOURNAMENT, C_OX, M_INV);
+	g.TOURNAMENT_SIZE = 10;
+	g.Pm = 0.05;
 	g.Pc = 0.9;
 	g.run();
 	cout << g.getFinalDistance() << endl;

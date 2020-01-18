@@ -46,8 +46,8 @@ public:
 	size_t getSize();
 	int getDistance(int i, int j);
 	string name;
+	vector<vector<int>> data;
 	~InstanceVector();
 private:
 	size_t size;
-	vector<vector<int>> data;
 };

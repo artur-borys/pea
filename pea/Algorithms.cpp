@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Algorithms.h"
+#include <cassert>
 
 void BruteForce::run()
 {
@@ -700,13 +701,39 @@ vector<Tour> Genetic::generatePopulation()
 
 Tour Genetic::selection()
 {
-	Tour *best = &population[utils::random(0, POPULATION_SIZE - 1)];
+	switch (SELECTION_METHOD) {
+	case 0:
+		return _selection_roulette();
+	case 1:
+		return _selection_tournament();
+	}
+}
+
+Tour Genetic::_selection_roulette()
+{
+	double sum_of_fittness = 0;
+	for (auto t : population) {
+		sum_of_fittness += t.fitness;
+	}
+	double p = utils::random(0.0, 1.0);
+	double p_x = 0.0;
+	for (auto t : population) {
+		p_x += t.fitness / sum_of_fittness;
+		if (p < p_x) {
+			return t;
+		}
+	}
+}
+
+Tour Genetic::_selection_tournament()
+{
+	Tour* best = &population[utils::random(0, POPULATION_SIZE - 1)];
 	for (int i = 1; i < TOURNAMENT_SIZE; i++) {
 		int id = utils::random(0, POPULATION_SIZE - 1);
-		Tour *candidate = &population[id];
+		Tour* candidate = &population[id];
 		if (candidate->length < best->length) {
 			best = candidate;
-		}		
+		}
 	}
 	return *best;
 }
@@ -801,7 +828,7 @@ vector<Tour> Genetic::_cross_OX(Tour p, Tour q)
 	vector<int> child1;
 	vector<int> child2;
 
-	for (int i = 0; i < end; i++) {
+	for (int i = start; i < end; i++) {
 		child1.push_back(parent1[i]);
 		child2.push_back(parent2[i]);
 	}
@@ -897,4 +924,171 @@ void Genetic::_mutate_transposition(Tour& x)
 	} while (i == j);
 
 	iter_swap(x.cities.begin() + i, x.cities.begin() + j);
+}
+
+void AntColony::run()
+{
+	vector<int> assignedCities;
+	vector<Ant> ants;
+	feromone = vector<vector<double>>(instance.getSize(), vector<double>(instance.getSize(), initial_feromone));
+	while(ants.size() < ANTS_COUNT) {
+		int city;
+		do {
+			city = utils::random(0, instance.getSize() - 1);
+		} while (find(assignedCities.begin(), assignedCities.end(), city) != assignedCities.end());
+		
+		assignedCities.push_back(city);
+		ants.push_back(Ant(city, instance.getSize()));
+	}
+
+	vector<int> bestPath;
+	int bestLength = INT_MAX;
+	chrono::high_resolution_clock::time_point startTime, endTime;
+	startTime = chrono::high_resolution_clock::now();
+	while(chrono::duration_cast<chrono::seconds>(chrono::high_resolution_clock::now() - startTime).count() < MAX_TIME) {
+		bool uni_path = true;
+		vector<int> lastPath;
+		for (int i = 0; i < ants.size(); i++) {
+			vector<int> path({ ants[i].starting_city });
+			while (path.size() < instance.getSize()) {
+				int next_city = selectNextCity(ants[i], path[path.size() - 1]);
+				path.push_back(next_city);
+			}
+			int length = instance.calculateCostFunction(path);
+			if (STRATEGY == 2) {
+				double delta = feromone_quantity / (double)length;
+				for (int a = 0; a < instance.getSize(); a++) {
+					for (int b = 0; b < instance.getSize(); b++) {
+						feromone[a][b] *= vaporating_factor;
+					}
+				}
+		
+				int previous_city = path[0];
+				for (int a = 1; a < path.size(); a++) {
+					int next_city = path[a];
+					feromone[previous_city][next_city] += delta;
+					previous_city = next_city;
+				}
+			}
+			if (length < bestLength) {
+				bestPath = path;
+				bestLength = length;
+			}
+
+			if (i == 0) {
+				lastPath = path;
+			}
+			else {
+				if (path != lastPath) {
+					uni_path = false;
+				}
+			}
+			ants[i].resetTabu();
+			if (chrono::duration_cast<chrono::seconds>(chrono::high_resolution_clock::now() - startTime).count() >= MAX_TIME) {
+				break;
+			}
+		}
+		if (uni_path) {
+			cout << "UNI_PATH" << endl;
+			break;
+		}
+	}
+
+	finalSolution = bestPath;
+	finalDistance = bestLength;
+}
+
+int AntColony::selectNextCity(Ant &ant, int city)
+{
+	double sum_of_possible = 0.0;
+	for (int c = 0; c < instance.getSize(); c++) {
+		if (ant.getTabu(c) == 1) continue;
+		double p = parametersCalculate(city, c);
+		sum_of_possible += p;
+	}
+	double biggestProbability = -1.0;
+	int mostProbable = -1;
+	// TODO: zamienic i zrobic jak w genetycznym. Bez tego nie ma sensu wiecej niz jedna iteracja
+	for (int c = 0; c < instance.getSize(); c++) {
+		if (ant.getTabu(c) == 1) continue;
+		double p = parametersCalculate(city, c) / sum_of_possible;
+		if (p >= biggestProbability) {
+			mostProbable = c;
+			biggestProbability = p;
+		}
+	}
+
+	if (STRATEGY != 2) {
+		for (int i = 0; i < instance.getSize(); i++) {
+			for (int j = 0; j < instance.getSize(); j++) {
+				feromone[i][j] = feromone[i][j] * vaporating_factor;
+			}
+		}
+		feromone[city][mostProbable] += delta_feromone(city, mostProbable);
+	}
+	
+	ant.setTabu(mostProbable);
+
+	return mostProbable;
+}
+
+double AntColony::delta_feromone(int i, int j)
+{
+	switch (STRATEGY) {
+	case 0:
+		return feromone_quantity;
+	case 1:
+		return instance.getDistance(i, j) == 0 ? feromone_quantity : feromone_quantity / (double)instance.getDistance(i, j);
+	}
+}
+
+vector<int> AntColony::getFinalSolution()
+{
+	return finalSolution;
+}
+
+int AntColony::getFinalDistance()
+{
+	return finalDistance;
+}
+
+double AntColony::parametersCalculate(int i, int j)
+{
+	int distance = instance.getDistance(i, j);
+	double tau, eta;
+	if (distance == 0) {
+		eta = pow(2.0, beta);
+	}
+	else {
+		eta = pow(1.0 / (double)distance, beta);
+	}
+
+	double fero = max({ feromone[i][j], 0.000001 });
+	tau = pow(fero, alpha);
+
+	return tau * eta;
+}
+
+Ant::Ant(int starting_city, int size)
+{
+	this->starting_city = starting_city;
+	tabuList.resize(size);
+	this->size = size;
+	resetTabu();
+}
+
+void Ant::resetTabu()
+{
+	tabuList = vector<bool>(size, false);
+	tabuList[starting_city] = 1;
+}
+
+int Ant::getTabu(int pos)
+{
+	return tabuList[pos];
+}
+
+void Ant::setTabu(int pos)
+{
+	tabuList[pos] = 1;
 }
