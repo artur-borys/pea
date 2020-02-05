@@ -626,6 +626,8 @@ void Genetic::run()
 		return a.length < b.length;
 		});
 
+	chrono::high_resolution_clock::time_point startTime, endTime;
+	startTime = chrono::high_resolution_clock::now();
 	for (int i = 0; i < ITERATION_COUNT; i++) {
 		vector<Tour> nextGeneration;
 		Tour lastBest = bestTour;
@@ -644,22 +646,8 @@ void Genetic::run()
 					}
 				}
 
-				Tour bestParent = min({ p1, p2 }, [](Tour a, Tour b) {
-					return a.length < b.length;
-					});
-
-				Tour bestChild = min({ children[0], children[1] }, [](Tour a, Tour b) {
-					return a.length < b.length;
-					});
-
-				if (bestParent.length < bestChild.length) {
-					nextGeneration.push_back(bestParent);
-					nextGeneration.push_back(bestChild);
-				}
-				else {
-					nextGeneration.push_back(children[0]);
-					nextGeneration.push_back(children[1]);
-				}
+				nextGeneration.push_back(children[0]);
+				nextGeneration.push_back(children[1]);
 			}
 			
 		}
@@ -727,15 +715,17 @@ Tour Genetic::_selection_roulette()
 
 Tour Genetic::_selection_tournament()
 {
-	Tour* best = &population[utils::random(0, POPULATION_SIZE - 1)];
+	int id = utils::random(0, population.size() - 1);
+	Tour best = population[id];
 	for (int i = 1; i < TOURNAMENT_SIZE; i++) {
-		int id = utils::random(0, POPULATION_SIZE - 1);
-		Tour* candidate = &population[id];
-		if (candidate->length < best->length) {
+		id = utils::random(0, population.size() - 1);
+		Tour candidate = population[id];
+		if (candidate.length < best.length) {
 			best = candidate;
 		}
 	}
-	return *best;
+	population.erase(population.begin() + id);
+	return best;
 }
 
 vector<Tour> Genetic::crossPair(Tour p, Tour q)
@@ -875,6 +865,7 @@ void Genetic::mutate(Tour& x)
 	}
 
 	x.length = instance.calculateCostFunction(x.cities);
+	x.fitness = 1.0 / (double) x.length;
 }
 
 void Genetic::_mutate_inversion(Tour& x)
@@ -931,15 +922,23 @@ void AntColony::run()
 	vector<int> assignedCities;
 	vector<Ant> ants;
 	feromone = vector<vector<double>>(instance.getSize(), vector<double>(instance.getSize(), initial_feromone));
-	while(ants.size() < ANTS_COUNT) {
-		int city;
-		do {
-			city = utils::random(0, instance.getSize() - 1);
-		} while (find(assignedCities.begin(), assignedCities.end(), city) != assignedCities.end());
-		
-		assignedCities.push_back(city);
-		ants.push_back(Ant(city, instance.getSize()));
+	if (ANTS_COUNT == instance.getSize()) {
+		for (int i = 0; i < instance.getSize(); i++) {
+			ants.push_back(Ant(i, instance.getSize()));
+		}
 	}
+	else {
+		while (ants.size() < ANTS_COUNT) {
+			int city;
+			do {
+				city = utils::random(0, instance.getSize() - 1);
+			} while (find(assignedCities.begin(), assignedCities.end(), city) != assignedCities.end());
+
+			assignedCities.push_back(city);
+			ants.push_back(Ant(city, instance.getSize()));
+		}
+	}
+	
 
 	vector<int> bestPath;
 	int bestLength = INT_MAX;
@@ -955,14 +954,14 @@ void AntColony::run()
 				path.push_back(next_city);
 			}
 			int length = instance.calculateCostFunction(path);
+			for (int a = 0; a < instance.getSize(); a++) {
+				for (int b = 0; b < instance.getSize(); b++) {
+					feromone[a][b] *= vaporating_factor;
+				}
+			}
 			if (STRATEGY == 2) {
 				double delta = feromone_quantity / (double)length;
-				for (int a = 0; a < instance.getSize(); a++) {
-					for (int b = 0; b < instance.getSize(); b++) {
-						feromone[a][b] *= vaporating_factor;
-					}
-				}
-		
+				
 				int previous_city = path[0];
 				for (int a = 1; a < path.size(); a++) {
 					int next_city = path[a];
@@ -984,12 +983,8 @@ void AntColony::run()
 				}
 			}
 			ants[i].resetTabu();
-			if (chrono::duration_cast<chrono::seconds>(chrono::high_resolution_clock::now() - startTime).count() >= MAX_TIME) {
-				break;
-			}
 		}
 		if (uni_path) {
-			cout << "UNI_PATH" << endl;
 			break;
 		}
 	}
@@ -1008,22 +1003,19 @@ int AntColony::selectNextCity(Ant &ant, int city)
 	}
 	double biggestProbability = -1.0;
 	int mostProbable = -1;
-	// TODO: zamienic i zrobic jak w genetycznym. Bez tego nie ma sensu wiecej niz jedna iteracja
+	double p = 0;
+	double s = utils::random(0.0, 1.0);
+
 	for (int c = 0; c < instance.getSize(); c++) {
 		if (ant.getTabu(c) == 1) continue;
-		double p = parametersCalculate(city, c) / sum_of_possible;
-		if (p >= biggestProbability) {
+		p += parametersCalculate(city, c) / sum_of_possible;
+		if (p >= s) {
 			mostProbable = c;
-			biggestProbability = p;
+			break;
 		}
 	}
 
 	if (STRATEGY != 2) {
-		for (int i = 0; i < instance.getSize(); i++) {
-			for (int j = 0; j < instance.getSize(); j++) {
-				feromone[i][j] = feromone[i][j] * vaporating_factor;
-			}
-		}
 		feromone[city][mostProbable] += delta_feromone(city, mostProbable);
 	}
 	
@@ -1057,13 +1049,13 @@ double AntColony::parametersCalculate(int i, int j)
 	int distance = instance.getDistance(i, j);
 	double tau, eta;
 	if (distance == 0) {
-		eta = pow(2.0, beta);
+		eta = 1;
 	}
 	else {
 		eta = pow(1.0 / (double)distance, beta);
 	}
 
-	double fero = max({ feromone[i][j], 0.000001 });
+	double fero = max({ feromone[i][j], 0.000000001 });
 	tau = pow(fero, alpha);
 
 	return tau * eta;

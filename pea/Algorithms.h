@@ -124,7 +124,7 @@ class Genetic {
 public:
 	int POPULATION_SIZE; // rozmiar populacji
 	double Pc, Pm; // p-stwa krzy¿owania i mutacji
-	int SELECTION_METHOD, CROSS_OPERATOR, MUTATION_OPERATOR, ITERATION_COUNT, TOURNAMENT_SIZE;
+	int SELECTION_METHOD, CROSS_OPERATOR, MUTATION_OPERATOR, ITERATION_COUNT, TOURNAMENT_SIZE, MAX_TIME;
 	void run();
 	vector<int> getFinalSolution();
 	int getFinalDistance();

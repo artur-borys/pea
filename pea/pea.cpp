@@ -625,26 +625,512 @@ void measureTSSmall() {
 
 }
 
+void measureGeneticSelection(string result_path,
+	vector<string> instances, vector<int> opt, int iters, int size, int selection, int tournament_size,
+	double pc, double pm, int cross, int mutation, int repeats)
+{
+	measure t;
+	for (int a = 0; a < instances.size(); a++) {
+		InstanceVector instance = InstanceVector::createFromFile("inst/" + instances[a]);
+		ofstream f1(result_path + "_avg.csv", ios::out | ios::app);
+		ofstream f2(result_path + "_min.csv", ios::out | ios::app);
+		ofstream f3(result_path + "_time.csv", ios::out | ios::app);
+		double time1 = 0, time2 = 0;
+		double avgScore1 = 0, avgScore2 = 0;
+		double score1, score2, bestScore1 = INT_MAX, bestScore2 = INT_MAX;
+		for (int i = 0; i < repeats; i++) {
+			Genetic g1(instance, iters, size, pc, pm, S_ROULETTE, cross, mutation);
+			t.start();
+			g1.run();
+			t.stop();
+			time1 += t.result();
+			score1 = (double)abs(opt[a] - g1.getFinalDistance()) / (double)opt[a];
+			avgScore1 += score1;
+			if (score1 < bestScore1) {
+				bestScore1 = score1;
+			}
+
+			Genetic g2(instance, iters, size, pc, pm, S_TOURNAMENT, cross, mutation);
+			g2.TOURNAMENT_SIZE = tournament_size;
+
+			t.start();
+			g2.run();
+			t.stop();
+			time2 += t.result();
+			score2 = (double)abs(opt[a] - g2.getFinalDistance()) / (double)opt[a];
+			avgScore2 += score2;
+
+			if (score2 < bestScore2) {
+				bestScore2 = score2;
+			}
+		}
+		avgScore1 /= (double)repeats;
+		avgScore2 /= (double)repeats;
+		time1 /= (double)repeats;
+		time2 /= (double)repeats;
+
+		f1 << std::fixed << std::setprecision(4) << avgScore1 << ";";
+		f1 << std::fixed << std::setprecision(4) << avgScore2 << ";" << endl;
+		f2 << std::fixed << std::setprecision(4) << bestScore1 << ";";
+		f2 << std::fixed << std::setprecision(4) << bestScore2 << ";" << endl;
+		f3 << std::fixed << std::setprecision(4) << time1 << ";";
+		f3 << std::fixed << std::setprecision(4) << time2 << ";" << endl;
+
+		f1.close();
+		f2.close();
+		f3.close();
+		
+	}
+}
+
+void measureGeneticPc(string result_path,
+	vector<string> instances, vector<int> opt, int iters, int size, int selection, int tournament_size,
+	vector<double> pc, double pm, int cross, int mutation, int repeats)
+{
+	measure t;
+	for (int a = 0; a < instances.size(); a++) {
+		InstanceVector instance = InstanceVector::createFromFile("inst/" + instances[a]);
+		ofstream f1(result_path + "_avg.csv", ios::out | ios::app);
+		ofstream f2(result_path + "_min.csv", ios::out | ios::app);
+		ofstream f3(result_path + "_time.csv", ios::out | ios::app);
+		vector<double> time(pc.size(), 0);
+		vector<double> avgScore(pc.size(), 0);
+		vector<double> bestScore(pc.size(), INT_MAX);
+		double score;
+		for (int b = 0; b < pc.size(); b++) {
+			for (int i = 0; i < repeats; i++) {
+				Genetic g1(instance, iters, size, pc[b], pm, S_TOURNAMENT, cross, mutation);
+				g1.TOURNAMENT_SIZE = tournament_size;
+				t.start();
+				g1.run();
+				t.stop();
+				time[b] += t.result();
+				score = (double)abs(opt[a] - g1.getFinalDistance()) / (double)opt[a];
+				avgScore[b] += score;
+				if (score < bestScore[b]) {
+					bestScore[b] = score;
+				}
+			}
+
+			avgScore[b] /= (double)repeats;
+			time[b] /= (double)repeats;
+			f1 << std::fixed << std::setprecision(4) << avgScore[b] << ";";
+			f2 << std::fixed << std::setprecision(4) << bestScore[b] << ";";
+			f3 << std::fixed << std::setprecision(4) << time[b] << ";";
+
+		}
+		f1 << endl;
+		f2 << endl;
+		f3 << endl;
+
+		f1.close();
+		f2.close();
+		f3.close();
+
+	}
+}
+
+void measureGeneticPm(string result_path,
+	vector<string> instances, vector<int> opt, int iters, int size, int selection, int tournament_size,
+	double pc, vector<double> pm, int cross, int mutation, int repeats)
+{
+	measure t;
+	for (int a = 0; a < instances.size(); a++) {
+		InstanceVector instance = InstanceVector::createFromFile("inst/" + instances[a]);
+		ofstream f1(result_path + "_avg.csv", ios::out | ios::app);
+		ofstream f2(result_path + "_min.csv", ios::out | ios::app);
+		ofstream f3(result_path + "_time.csv", ios::out | ios::app);
+		vector<double> time(pm.size(), 0);
+		vector<double> avgScore(pm.size(), 0);
+		vector<double> bestScore(pm.size(), INT_MAX);
+		double score;
+		for (int b = 0; b < pm.size(); b++) {
+			for (int i = 0; i < repeats; i++) {
+				Genetic g1(instance, iters, size, pc, pm[b], S_TOURNAMENT, cross, mutation);
+				g1.TOURNAMENT_SIZE = tournament_size;
+				t.start();
+				g1.run();
+				t.stop();
+				time[b] += t.result();
+				score = (double)abs(opt[a] - g1.getFinalDistance()) / (double)opt[a];
+				avgScore[b] += score;
+				if (score < bestScore[b]) {
+					bestScore[b] = score;
+				}
+			}
+
+			avgScore[b] /= (double)repeats;
+			time[b] /= (double)repeats;
+			f1 << std::fixed << std::setprecision(4) << avgScore[b] << ";";
+			f2 << std::fixed << std::setprecision(4) << bestScore[b] << ";";
+			f3 << std::fixed << std::setprecision(4) << time[b] << ";";
+
+		}
+		f1 << endl;
+		f2 << endl;
+		f3 << endl;
+
+		f1.close();
+		f2.close();
+		f3.close();
+
+	}
+}
+
+void measureAllGenetic() {
+	vector<string> paths = {
+		"data10.txt",
+		"data21.txt",
+		"data43.txt",
+		"data58.txt",
+		"data71.txt",
+		"data120.txt",
+		"data443.txt"
+		};
+	vector<int> sizes = {
+		10,
+		21,
+		43,
+		58,
+		71,
+		120,
+		443
+	};
+	vector<int> opt = {
+		212, // 10
+		2707, // 21
+		5620, // 43
+		25395, // 58
+		1950, // 71
+		6942, // 120
+		2720, // 443
+	};
+
+	int ITERATIONS = 500;
+	int POPULATION_SIZE = 500;
+	vector<int> TS = { 2, 5, 10 };
+	vector<double> Pc = { 0.6, 0.75 };
+	vector<double> Pm = { 0.01, 0.05 };
+	vector<int> C = { C_PMX, C_OX };
+	vector<int> M = { M_INS, M_INV };
+	int repeats = 10;
+	vector<string> results = { "selection", "ts.csv", "pc.vsc", "pm.csv", "cross.csv", "mutation.csv" };
+	thread selection(measureGeneticSelection, "measurements/selection", paths, opt, ITERATIONS, POPULATION_SIZE, 0, 10, 1.0, 0.1, C_OX, M_INS, 10);
+	thread pc(measureGeneticPc, "measurements/pc", paths, opt, ITERATIONS, POPULATION_SIZE, S_TOURNAMENT, 10, Pc, 0.1, C_OX, M_INS, 10);
+	thread pm(measureGeneticPm, "measurements/pm", paths, opt, ITERATIONS, POPULATION_SIZE, S_TOURNAMENT, 10, 0.9, Pm, C_OX, M_INS, 10);
+
+	selection.join();
+	pc.join();
+	pm.join();
+}
+
+void measureAntStrategy(string result_path,
+	vector<string> instances, vector<int> opt, vector<int> sizes, double alpha, double beta, vector<int> strategy, double vaporating, double fero, int repeats)
+{
+	measure t;
+	for (int a = 0; a < instances.size(); a++) {
+		InstanceVector instance = InstanceVector::createFromFile("inst/" + instances[a]);
+		ofstream f1(result_path + "_avg.csv", ios::out | ios::app);
+		ofstream f2(result_path + "_min.csv", ios::out | ios::app);
+		ofstream f3(result_path + "_time.csv", ios::out | ios::app);
+		vector<double> time(strategy.size(), 0);
+		vector<double> avgScore(strategy.size(), 0);
+		vector<double> bestScore(strategy.size(), INT_MAX);
+		double score;
+		for (int b = 0; b < strategy.size(); b++) {
+			for (int i = 0; i < repeats; i++) {
+				AntColony ac(instance);
+				ac.ANTS_COUNT = sizes[a];
+				ac.MAX_TIME = 10;
+				ac.alpha = alpha;
+				ac.beta = beta;
+				ac.STRATEGY = strategy[b];
+				ac.vaporating_factor = vaporating;
+				ac.initial_feromone = (double)sizes[a]/(double)opt[a];
+				ac.feromone_quantity = 10;
+				t.start();
+				ac.run();
+				t.stop();
+				time[b] += t.result();
+				score = (double)abs(opt[a] - ac.getFinalDistance()) / (double)opt[a];
+				avgScore[b] += score;
+				if (score < bestScore[b]) {
+					bestScore[b] = score;
+				}
+			}
+
+			avgScore[b] /= (double)repeats;
+			time[b] /= (double)repeats;
+			f1 << std::fixed << std::setprecision(4) << avgScore[b] << ";";
+			f2 << std::fixed << std::setprecision(4) << bestScore[b] << ";";
+			f3 << std::fixed << std::setprecision(4) << time[b] << ";";
+			f1.flush();
+			f2.flush();
+			f3.flush();
+
+		}
+		f1 << endl;
+		f2 << endl;
+		f3 << endl;
+
+		f1.close();
+		f2.close();
+		f3.close();
+
+	}
+}
+
+void measureAntAlpha(string result_path,
+	vector<string> instances, vector<int> opt, vector<int> sizes, vector<double> alpha, double beta, int strategy, double vaporating, double fero, int repeats)
+{
+	measure t;
+	for (int a = 0; a < instances.size(); a++) {
+		InstanceVector instance = InstanceVector::createFromFile("inst/" + instances[a]);
+		ofstream f1(result_path + "_avg.csv", ios::out | ios::app);
+		ofstream f2(result_path + "_min.csv", ios::out | ios::app);
+		ofstream f3(result_path + "_time.csv", ios::out | ios::app);
+		vector<double> time(alpha.size(), 0);
+		vector<double> avgScore(alpha.size(), 0);
+		vector<double> bestScore(alpha.size(), INT_MAX);
+		double score;
+		for (int b = 0; b < alpha.size(); b++) {
+			for (int i = 0; i < repeats; i++) {
+				AntColony ac(instance);
+				ac.ANTS_COUNT = sizes[a];
+				ac.MAX_TIME = 10;
+				ac.alpha = alpha[b];
+				ac.beta = beta;
+				ac.STRATEGY = strategy;
+				ac.vaporating_factor = vaporating;
+				ac.initial_feromone = (double)sizes[a] / (double)opt[a];
+				ac.feromone_quantity = fero;
+				t.start();
+				ac.run();
+				t.stop();
+				time[b] += t.result();
+				score = (double)abs(opt[a] - ac.getFinalDistance()) / (double)opt[a];
+				avgScore[b] += score;
+				if (score < bestScore[b]) {
+					bestScore[b] = score;
+				}
+			}
+
+			avgScore[b] /= (double)repeats;
+			time[b] /= (double)repeats;
+			f1 << std::fixed << std::setprecision(4) << avgScore[b] << ";";
+			f2 << std::fixed << std::setprecision(4) << bestScore[b] << ";";
+			f3 << std::fixed << std::setprecision(4) << time[b] << ";";
+			f1.flush();
+			f2.flush();
+			f3.flush();
+
+		}
+		f1 << endl;
+		f2 << endl;
+		f3 << endl;
+
+		f1.close();
+		f2.close();
+		f3.close();
+
+	}
+}
+
+void measureAntBeta(string result_path,
+	vector<string> instances, vector<int> opt, vector<int> sizes, double alpha, vector<double> beta, int strategy, double vaporating, double fero, int repeats)
+{
+	measure t;
+	for (int a = 0; a < instances.size(); a++) {
+		InstanceVector instance = InstanceVector::createFromFile("inst/" + instances[a]);
+		ofstream f1(result_path + "_avg.csv", ios::out | ios::app);
+		ofstream f2(result_path + "_min.csv", ios::out | ios::app);
+		ofstream f3(result_path + "_time.csv", ios::out | ios::app);
+		vector<double> time(beta.size(), 0);
+		vector<double> avgScore(beta.size(), 0);
+		vector<double> bestScore(beta.size(), INT_MAX);
+		double score;
+		for (int b = 0; b < beta.size(); b++) {
+			for (int i = 0; i < repeats; i++) {
+				AntColony ac(instance);
+				ac.ANTS_COUNT = sizes[a];
+				ac.MAX_TIME = 10;
+				ac.alpha = alpha;
+				ac.beta = beta[b];
+				ac.STRATEGY = strategy;
+				ac.vaporating_factor = vaporating;
+				ac.initial_feromone = (double)sizes[a] / (double)opt[a];
+				ac.feromone_quantity = fero;
+				t.start();
+				ac.run();
+				t.stop();
+				time[b] += t.result();
+				score = (double)abs(opt[a] - ac.getFinalDistance()) / (double)opt[a];
+				avgScore[b] += score;
+				if (score < bestScore[b]) {
+					bestScore[b] = score;
+				}
+			}
+
+			avgScore[b] /= (double)repeats;
+			time[b] /= (double)repeats;
+			f1 << std::fixed << std::setprecision(4) << avgScore[b] << ";";
+			f2 << std::fixed << std::setprecision(4) << bestScore[b] << ";";
+			f3 << std::fixed << std::setprecision(4) << time[b] << ";";
+			f1.flush();
+			f2.flush();
+			f3.flush();
+
+		}
+		f1 << endl;
+		f2 << endl;
+		f3 << endl;
+
+		f1.close();
+		f2.close();
+		f3.close();
+
+	}
+}
+
+void measureAntVaporating(string result_path,
+	vector<string> instances, vector<int> opt, vector<int> sizes, double alpha, double beta, int strategy, vector<double> vaporating, double fero, int repeats)
+{
+	measure t;
+	for (int a = 0; a < instances.size(); a++) {
+		InstanceVector instance = InstanceVector::createFromFile("inst/" + instances[a]);
+		ofstream f1(result_path + "_avg.csv", ios::out | ios::app);
+		ofstream f2(result_path + "_min.csv", ios::out | ios::app);
+		ofstream f3(result_path + "_time.csv", ios::out | ios::app);
+		vector<double> time(vaporating.size(), 0);
+		vector<double> avgScore(vaporating.size(), 0);
+		vector<double> bestScore(vaporating.size(), INT_MAX);
+		double score;
+		for (int b = 0; b < vaporating.size(); b++) {
+			for (int i = 0; i < repeats; i++) {
+				AntColony ac(instance);
+				ac.ANTS_COUNT = sizes[a];
+				ac.MAX_TIME = 10;
+				ac.alpha = alpha;
+				ac.beta = beta;
+				ac.STRATEGY = strategy;
+				ac.vaporating_factor = vaporating[b];
+				ac.initial_feromone = (double)sizes[a] / (double)opt[a];
+				ac.feromone_quantity = fero;
+				t.start();
+				ac.run();
+				t.stop();
+				time[b] += t.result();
+				score = (double)abs(opt[a] - ac.getFinalDistance()) / (double)opt[a];
+				avgScore[b] += score;
+				if (score < bestScore[b]) {
+					bestScore[b] = score;
+				}
+				
+			}
+
+			avgScore[b] /= (double)repeats;
+			time[b] /= (double)repeats;
+			f1 << std::fixed << std::setprecision(4) << avgScore[b] << ";";
+			f2 << std::fixed << std::setprecision(4) << bestScore[b] << ";";
+			f3 << std::fixed << std::setprecision(4) << time[b] << ";";
+			f1.flush();
+			f2.flush();
+			f3.flush();
+
+		}
+		f1 << endl;
+		f2 << endl;
+		f3 << endl;
+
+		f1.close();
+		f2.close();
+		f3.close();
+
+	}
+}
+
+void measureAllAnt() {
+	vector<string> paths = {
+		"data10.txt",
+		"data18.txt",
+		"data21.txt",
+		"data39.txt",
+		"data43.txt",
+		"data58.txt",
+		"data71.txt",
+		"data120.txt",
+		"data323.txt",
+		"data443.txt"
+	};
+	vector<int> sizes = {
+		10,
+		18,
+		21,
+		39,
+		43,
+		58,
+		71,
+		120,
+		323,
+		443
+	};
+	vector<int> opt = {
+		212, // 10
+		187, // 18
+		2707, // 21
+		1530, // 39
+		5620, // 43
+		25395, // 58
+		1950, // 71
+		6942, // 120
+		1326, // 323
+		2720, // 443
+	};
+
+	int TIME = 10;
+	vector<int> strategy = { DAS, QAS, CAS };
+	vector<double> alpha = { 0.5, 1.5 };
+	vector<double> beta = { 2.0, 3.0 };
+	vector<double> vaporating = { 0.25, 0.75 };
+
+	thread strat(measureAntStrategy, "measurements/ant_strategy", paths, opt, sizes, 1.0, 5.0, strategy, 0.5, 100.0, 10);
+	thread a(measureAntAlpha, "measurements/ant_alpha", paths, opt, sizes, alpha, 5.0, DAS, 0.5, 100.0, 10);
+	thread b(measureAntBeta, "measurements/ant_beta", paths, opt, sizes, 1.0, beta, DAS, 0.5, 100.0, 10);
+	thread v(measureAntVaporating, "measurements/ant_vapo", paths, opt, sizes, 1.0, 5.0, DAS, vaporating, 100.0, 10);
+
+	strat.join();
+	a.join();
+	b.join();
+	v.join();
+	
+}
+
 int main()
 {
-	InstanceVector inst = InstanceVector::createFromFile("ATSP/data443.txt");
-	AntColony a(inst);
-	a.ANTS_COUNT = 443;
-	a.STRATEGY = DAS;
-	a.alpha = 1.0;
-	a.beta = 5.0;
-	a.feromone_quantity = 10.0;
-	a.vaporating_factor = 0.5;
-	a.MAX_TIME = 10;
-	a.initial_feromone = (double)a.ANTS_COUNT / 2720.0;
-	a.run();
-	cout << a.getFinalDistance() << endl;
+	//measureAllGenetic();
+	measureAllAnt();
+	return 0;
+	InstanceVector inst = InstanceVector::createFromFile("SMALL/data10.txt");
+	for (int i = 0; i < 2; i++) {
+		AntColony a(inst);
+		a.ANTS_COUNT = 10;
+		a.STRATEGY = DAS;
+		a.alpha = 1.0;
+		a.beta = 5.0;
+		a.feromone_quantity = 100.0;
+		a.vaporating_factor = 0.5;
+		a.MAX_TIME = 10;
+		a.initial_feromone = (double)a.ANTS_COUNT / 2720.0;
+		a.run();
+		cout << a.getFinalDistance() << endl;
+	}
+	
 	//utils::printSolution(a.getFinalSolution());
 	return 0;
-	Genetic g(inst, 1000, 100, 1, 1, S_TOURNAMENT, C_OX, M_INV);
+	Genetic g(inst, 10, 500, 1, 1, S_TOURNAMENT, C_PMX, M_INV);
 	g.TOURNAMENT_SIZE = 10;
-	g.Pm = 0.05;
-	g.Pc = 0.9;
+	g.Pm = 0.1;
+	g.Pc = 0.7;
 	g.run();
 	cout << g.getFinalDistance() << endl;
 	return 0;
